@@ -2,6 +2,7 @@ import 'package:circular_menu/circular_menu.dart';
 import 'package:dining_plan/helpers/mealWidgets.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:postgres/postgres.dart';
 
 import 'models/food.dart';
 
@@ -69,6 +70,19 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   @override
+  void initState() async {
+    super.initState();
+    var connection = PostgreSQLConnection(
+        "free-tier11.gcp-us-east1.cockroachlabs.cloud",
+        26257,
+        "swift-hare-482.defaultdb",
+        username: "nathanb9",
+        password: "AsR0kDQTDNyn5z-nxxfHuA"
+    );
+    await connection.open();
+  }
+
+  @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
@@ -93,10 +107,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.all(Radius.circular(30.0)),
-                    child: Image.asset('images/diner.jpg')
+                    child: ColorFiltered(
+                        colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.darken),
+                        child: Image.asset('images/diner.jpg')
+                    )
                   ),
                   Container(
-                    transform: Matrix4.translationValues(20, 200, 0),
+                    transform: Matrix4.translationValues(20, 205, 0),
                     child: const Text('The Diner', style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold))
                   )
                 ],
@@ -114,8 +131,13 @@ class _MyHomePageState extends State<MyHomePage> {
                       end: Alignment.bottomRight,
                     ),
                   ),
-                  child: Text(_mealText(), style: TextStyle(fontSize: 30),), //declare your widget here
+                  child: Text(_mealText(), style: const TextStyle(fontSize: 30),), //declare your widget here
                 ),
+              ),
+              Row(
+                children: const [
+                  MealFilter()
+                ],
               ),
               const FoodCard(food: Food(name: 'X', options: [Options.vegan]))
             ],
