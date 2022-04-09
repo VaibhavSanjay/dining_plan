@@ -8,7 +8,7 @@ class FoodCard extends StatelessWidget {
   final Food food;
 
   Image _getOptionIcon (Options op) {
-    return Image.network('https://nutrition.umd.edu/LegendImages/icons_2016_vegetarian.gif', scale: 0.5,);
+    return Image.network('https://nutrition.umd.edu/LegendImages/icons_2016_${op.toString().split(".")[1]}.gif', scale: 0.5,);
   }
 
   @override
