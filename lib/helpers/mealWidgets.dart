@@ -78,24 +78,28 @@ class _MealFilterState extends State<MealFilter> with SingleTickerProviderStateM
       child: Card(
         elevation: _sizeList[_active],
         shape: const StadiumBorder(),
-        child: InkWell(
-          onTap: () {
-            _updateTween();
-            widget.onTap();
-          },
-          child: AnimatedContainer(
-            padding: EdgeInsets.symmetric(horizontal: 14 - _sizeList[_active]),
-            decoration: ShapeDecoration(
-              shape: const StadiumBorder(),
-              color: _colorList[_active],
-            ),
-            duration: const Duration(milliseconds: 250),
+        child: AnimatedContainer(
+          padding: EdgeInsets.symmetric(horizontal: 14 - _sizeList[_active]),
+          decoration: ShapeDecoration(
+            shape: const StadiumBorder(),
+            color: _colorList[_active],
+          ),
+          duration: const Duration(milliseconds: 250),
+          child: InkWell(
+            onTap: () {
+              _updateTween();
+              widget.onTap();
+            },
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  ClipOval(child: getOptionIcon(widget.option, 0.8)),
+                  AnimatedContainer(
+                    duration: Duration(milliseconds: 200),
+                    transform: Matrix4.translationValues(5 - _sizeList[_active]*5/14, 0, 0),
+                    child: ClipOval(child: getOptionIcon(widget.option, 0.8))
+                  ),
                   Padding(
                     padding: const EdgeInsets.only(left: 8),
                     child: AnimatedDefaultTextStyle(
@@ -142,18 +146,23 @@ class FoodCardListState extends State<FoodCardList> {
       _active.remove(op) ? _disable.add(op) : _active.add(op);
     }
 
-    _curFoodItems = [...widget.foodItems];
-    for (int i = 0; i < _curFoodItems.length; i++) {
-      for (Options option in _active) {
-        if (!_curFoodItems[i].options.contains(option)) {
-          _curFoodItems.removeAt(i);
-          i--;
-        }
-      }
+    bool found = false;
+    _curFoodItems = [];
+    for (int i = 0; i < widget.foodItems.length; i++) {
+      found = false;
       for (Options option in _disable) {
-        if (_curFoodItems[i].options.contains(option)) {
-          _curFoodItems.removeAt(i);
-          i--;
+        found = widget.foodItems[i].options.contains(option);
+      }
+      if (!found) {
+        if (_active.isEmpty) {
+          _curFoodItems.add(widget.foodItems[i]);
+        } else {
+          for (Options option in _active) {
+            if (widget.foodItems[i].options.contains(option)) {
+              _curFoodItems.add(widget.foodItems[i]);
+              break;
+            }
+          }
         }
       }
     }

@@ -3,7 +3,6 @@ import 'package:dining_plan/helpers/mealWidgets.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:postgres/postgres.dart';
-import 'package:animated_text_kit/animated_text_kit.dart';
 
 import 'models/food.dart';
 
@@ -54,19 +53,30 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
+class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   int _meal = 0;
   late List<Food> _foodList;
   bool _setList = false;
   final GlobalKey<FoodCardListState> _keyFoodList = GlobalKey();
   late final AnimationController _controller = AnimationController(
-    duration: const Duration(milliseconds: 300),
+    duration: const Duration(milliseconds: 100),
     vsync: this,
   );
   late final Animation<double> _animation = CurvedAnimation(
     parent: _controller,
     curve: Curves.easeIn,
   );
+  late final AnimationController _nameController = AnimationController(
+    duration: const Duration(milliseconds: 300),
+    vsync: this,
+  );
+  late final Animation<double> _nameAnimation = CurvedAnimation(
+    parent: _nameController,
+    curve: Curves.easeInOutBack,
+  );
+  int _cur = 0;
+  final List<String> _imgs = ['diner', 'north', 'south'];
+  final List<String> _names = ['The Diner', '251 North', 'South Diner'];
 
   @override
   void dispose() {
@@ -92,6 +102,15 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     super.initState();
     test();
     _controller.forward();
+    _nameController.forward();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    precacheImage(const AssetImage('images/diner.jpg'), context);
+    precacheImage(const AssetImage('images/north.jpg'), context);
+    precacheImage(const AssetImage('images/south.jpg'), context);
   }
 
   void test() async {
@@ -134,80 +153,102 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
       ),
       body: CircularMenu(
         alignment: Alignment.bottomRight,
-        backgroundWidget: Column(
-          children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  child: ColorFiltered(
-                      colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.darken),
-                      child: Image.asset('images/diner.jpg')
-                  )
-                ),
-                Container(
-                  transform: Matrix4.translationValues(15, 15, 0),
-                  child: Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15)
+        backgroundWidget: Container(
+          color: Colors.black87,
+          child: Column(
+            children: [
+              InkWell(
+                onTap: () {
+                  _nameController.reverse().whenComplete(() {
+                    setState(() {
+                      _cur = (_cur + 1) % 3;
+                    });
+                    _nameController.forward();
+                  });
+                },
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      child: ColorFiltered(
+                          colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.darken),
+                          child: Image.asset('images/${_imgs[_cur]}.jpg')
+                      )
                     ),
-                    color: Colors.amber,
-                    child: const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text('The Diner', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
-                    )
-                  )
-                ),
-                Container(
-                  alignment: Alignment.center,
-                  transform: Matrix4.translationValues(0, 235, 0),
-                  child: SizeTransition(
-                    sizeFactor: _animation,
-                    axis: Axis.horizontal,
-                    axisAlignment: -1,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        const Opacity(
-                          opacity: 0.7,
-                          child: SizedBox(
-                            width: 160,
-                            height: 50,
-                            child: Card(
-                              elevation: 5,
-                              color: Colors.grey,
-                            ),
+                    SizeTransition(
+                      sizeFactor: _nameAnimation,
+                      axisAlignment: 0,
+                      child: Container(
+                        transform: Matrix4.translationValues(15, 15, 0),
+                        child: Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15)
                           ),
-                        ),
-                        Text(
-                          _mealText(),
-                          style: const TextStyle(fontSize: 30, color: Colors.amberAccent, fontWeight: FontWeight.bold)
+                          color: Colors.amber,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 8, right: 8, top: 8, bottom: 16),
+                            child: Text(_names[_cur], style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+                          )
                         )
-                      ],
+                      ),
                     ),
-                  ),
+                    Container(
+                      alignment: Alignment.center,
+                      transform: Matrix4.translationValues(0, 235, 0),
+                      child: SizeTransition(
+                        sizeFactor: _animation,
+                        axis: Axis.horizontal,
+                        axisAlignment: -1,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            const Opacity(
+                              opacity: 0.7,
+                              child: SizedBox(
+                                width: 160,
+                                height: 50,
+                                child: Card(
+                                  elevation: 5,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              _mealText(),
+                              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold)
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            Container(
-              alignment: Alignment.center,
-              padding: const EdgeInsets.only(top: 30),
-              width: 350,
-              child: Wrap(
-                children: Options.values.toList().map(
-                        (op) => MealFilter(
-                            option: op,
-                            onTap: () => _keyFoodList.currentState!.filter(op)
-                        )).toList()
               ),
-            ),
-            Divider(
-              color: Colors.grey.withOpacity(0.5),
-              thickness: 10,
-            ),
-            _setList ? Expanded(child: FoodCardList(foodItems: _foodList, key: _keyFoodList)) : const CircularProgressIndicator()
-          ],
+              Container(
+                alignment: Alignment.center,
+                padding: const EdgeInsets.only(top: 40, bottom: 20),
+                width: 365,
+                child: Wrap(
+                  children: Options.values.toList().map(
+                          (op) => MealFilter(
+                              option: op,
+                              onTap: () => _keyFoodList.currentState!.filter(op)
+                          )).toList()
+                ),
+              ),
+              Divider(
+                color: Colors.grey.withOpacity(0.5),
+                thickness: 10,
+              ),
+              _setList ? Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: FoodCardList(foodItems: _foodList, key: _keyFoodList),
+                )
+              ) : const CircularProgressIndicator()
+            ],
+          ),
         ),
-        toggleButtonBoxShadow: [],
+        toggleButtonBoxShadow: const [],
         items: [
           CircularMenuItem(icon: FontAwesomeIcons.bacon, onTap: () {
             _controller.reverse().whenComplete(() {
@@ -217,10 +258,10 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
               _controller.forward();
             });
             },
-            boxShadow: [],
+            boxShadow: const [],
             color: Colors.amber,
           ),
-          CircularMenuItem(icon: FontAwesomeIcons.burger, onTap: () {
+          CircularMenuItem(icon: FontAwesomeIcons.pizzaSlice, onTap: () {
             _controller.reverse().whenComplete(() {
               setState(() {
                 _meal = 1;
@@ -228,9 +269,9 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
               _controller.forward();
             });
           },
-          boxShadow: [],
+          boxShadow: const [],
           color: Colors.deepOrange,),
-          CircularMenuItem(icon: FontAwesomeIcons.bowlRice, onTap: () {
+          CircularMenuItem(icon: FontAwesomeIcons.burger, onTap: () {
             _controller.reverse().whenComplete(() {
               setState(() {
                 _meal = 2;
@@ -238,7 +279,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
               _controller.forward();
             });
           },
-          boxShadow: [],
+          boxShadow: const [],
           color: Colors.indigo,),
         ],
       )
