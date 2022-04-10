@@ -55,6 +55,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _meal = 0;
+  late List<Food> _foodList;
 
   String _mealText() {
     switch(_meal) {
@@ -70,16 +71,37 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   @override
-  void initState() async {
+  void initState() {
     super.initState();
+    _foodList = [
+      Food(name: 'Nathan', options: [Options.vegetarian, Options.vegan]),
+      Food(name: 'Salad', options: [Options.vegetarian, Options.halal]),
+      Food(name: 'Salad', options: [Options.vegetarian, Options.halal]),
+      Food(name: 'Salad', options: [Options.vegetarian, Options.halal]),
+      Food(name: 'Salad', options: [Options.vegetarian, Options.halal]),
+      Food(name: 'Salad', options: [Options.vegetarian, Options.halal]),
+      Food(name: 'Salad', options: [Options.vegetarian, Options.halal]),
+      Food(name: 'Sawdawd', options: [Options.vegetarian, Options.halal]),
+    ];
+    // test();
+  }
+
+  void test() async {
     var connection = PostgreSQLConnection(
         "free-tier11.gcp-us-east1.cockroachlabs.cloud",
         26257,
         "swift-hare-482.defaultdb",
         username: "nathanb9",
-        password: "AsR0kDQTDNyn5z-nxxfHuA"
+        password: "AsR0kDQTDNyn5z-nxxfHuA",
     );
-    await connection.open();
+    try {
+      await connection.open();
+    } catch (e) {
+      print(e);
+    }
+
+    List<List<dynamic>> results = await connection.query("SELECT name FROM food");
+    print(results);
   }
 
   @override
@@ -101,7 +123,6 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundWidget: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Stack(
                 children: [
@@ -136,10 +157,12 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               Row(
                 children: const [
-                  MealFilter()
+                  MealFilter(option: Options.vegetarian),
+                  MealFilter(option: Options.vegan),
+                  MealFilter(option: Options.halal)
                 ],
               ),
-              const FoodCard(food: Food(name: 'X', options: [Options.vegan]))
+              Expanded(child: FoodCardList(foodItems: _foodList))
             ],
           ),
         ),

@@ -2,29 +2,39 @@ import 'package:flutter/material.dart';
 
 import '../models/food.dart';
 
+Image getOptionIcon (Options op, double scale) {
+  return Image.network('https://nutrition.umd.edu/LegendImages/icons_2016_${op.toString().split(".")[1]}.gif', scale: scale);
+}
+
+extension StringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${substring(1).toLowerCase()}";
+  }
+}
+
 class FoodCard extends StatelessWidget {
   const FoodCard({Key? key, required this.food}) : super(key: key);
 
   final Food food;
 
-  Image _getOptionIcon (Options op) {
-    return Image.network('https://nutrition.umd.edu/LegendImages/icons_2016_${op.toString().split(".")[1]}.gif', scale: 0.5,);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 5,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15.0),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(16.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(food.name, style: const TextStyle(fontSize: 30),),
             Row(
-              children: food.options.map(_getOptionIcon).toList(),
+              children: food.options.map((op) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: getOptionIcon(op, 0.7),
+              )).toList(),
             )
           ],
         ),
@@ -34,7 +44,9 @@ class FoodCard extends StatelessWidget {
 }
 
 class MealFilter extends StatefulWidget {
-  const MealFilter({Key? key}) : super(key: key);
+  const MealFilter({Key? key, required this.option}) : super(key: key);
+
+  final Options option;
 
   @override
   State<MealFilter> createState() => _MealFilterState();
@@ -81,13 +93,19 @@ class _MealFilterState extends State<MealFilter> with SingleTickerProviderStateM
           padding: const EdgeInsets.all(8.0),
           child: Row(
             children: [
-              ClipOval(child: Image.network('https://nutrition.umd.edu/LegendImages/icons_2016_vegetarian.gif')),
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: ClipOval(child: getOptionIcon(widget.option, 0.8)),
+              ),
               Padding(
                 padding: const EdgeInsets.only(left: 8),
                 child: AnimatedDefaultTextStyle(
                     duration: const Duration(milliseconds: 250),
                     style: TextStyle(fontSize: _fontSize, color: Colors.black),
-                    child: const Text('Vegetarian')
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 5),
+                      child: Text(widget.option.toString().split(".")[1].capitalize()),
+                    )
                 ),
               )
             ],
@@ -111,7 +129,10 @@ class _FoodCardListState extends State<FoodCardList> {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-        itemBuilder: (context, index) => FoodCard(food: widget.foodItems[index])
+      scrollDirection: Axis.vertical,
+      shrinkWrap: true,
+      itemCount: widget.foodItems.length,
+      itemBuilder: (context, index) => FoodCard(food: widget.foodItems[index])
     );
   }
 }

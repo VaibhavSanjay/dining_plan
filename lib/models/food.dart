@@ -1,8 +1,10 @@
 enum Options {
   vegan,
   vegetarian,
-  glutenFree,
-  halal
+  gluten,
+  halal,
+  dairy,
+  soy
 }
 
 class Food {
