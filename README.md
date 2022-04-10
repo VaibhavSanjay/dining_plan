@@ -28,12 +28,13 @@ We used flutter to build the mobile front end of the application. Then, we used 
 
 ### Contributors
 
-<ol>
+<ul>
   <li>VaibhavSanjay</li>
   <li>nathan_b9</li>
+  <li>python</li>
   <li>vladodio</li>
   <li>pistachionet</li>
-</ol>
+</ul>
 
 
 
