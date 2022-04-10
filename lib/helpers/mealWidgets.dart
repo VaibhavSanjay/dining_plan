@@ -44,9 +44,10 @@ class FoodCard extends StatelessWidget {
 }
 
 class MealFilter extends StatefulWidget {
-  const MealFilter({Key? key, required this.option}) : super(key: key);
+  const MealFilter({Key? key, required this.option, required this.onTap}) : super(key: key);
 
   final Options option;
+  final Function() onTap;
 
   @override
   State<MealFilter> createState() => _MealFilterState();
@@ -54,23 +55,9 @@ class MealFilter extends StatefulWidget {
 
 class _MealFilterState extends State<MealFilter> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<Color?> _colorAnim;
-  final ColorTween _colorTween = ColorTween(begin: Colors.white, end: Colors.green);
-  bool active = false;
-  double _fontSize = 0;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 250),
-      vsync: this,
-    )
-      ..addListener(() { setState(() {}); });
-
-    _colorAnim = _colorTween.animate(_controller);
-  }
+  int _active = 0;
+  final List<Color> _colorList = [Colors.white, Colors.green, Colors.red];
+  final List<double> _sizeList = [0, 14, 14];
 
   @override
   void dispose() {
@@ -78,37 +65,51 @@ class _MealFilterState extends State<MealFilter> with SingleTickerProviderStateM
     _controller.dispose();
   }
 
+  void _updateTween() {
+    setState(() {
+      _active = (_active + 1) % 3;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        active ? _controller.reverse() : _controller.forward();
-        active = !active;
-        _fontSize = 14 - _fontSize;
-      },
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5),
       child: Card(
-        color: _colorAnim.value,
+        elevation: _sizeList[_active],
         shape: const StadiumBorder(),
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: ClipOval(child: getOptionIcon(widget.option, 0.8)),
+        child: InkWell(
+          onTap: () {
+            _updateTween();
+            widget.onTap();
+          },
+          child: AnimatedContainer(
+            padding: EdgeInsets.symmetric(horizontal: 14 - _sizeList[_active]),
+            decoration: ShapeDecoration(
+              shape: const StadiumBorder(),
+              color: _colorList[_active],
+            ),
+            duration: const Duration(milliseconds: 250),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClipOval(child: getOptionIcon(widget.option, 0.8)),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 125),
+                        style: TextStyle(fontSize: _sizeList[_active], color: Colors.black),
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 5),
+                          child: Text(widget.option.toString().split(".")[1].capitalize()),
+                        )
+                    ),
+                  )
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 250),
-                    style: TextStyle(fontSize: _fontSize, color: Colors.black),
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 5),
-                      child: Text(widget.option.toString().split(".")[1].capitalize()),
-                    )
-                ),
-              )
-            ],
+            ),
           ),
         ),
       ),
@@ -122,17 +123,50 @@ class FoodCardList extends StatefulWidget {
   final List<Food> foodItems;
 
   @override
-  State<FoodCardList> createState() => _FoodCardListState();
+  State<FoodCardList> createState() => FoodCardListState();
 }
 
-class _FoodCardListState extends State<FoodCardList> {
+class FoodCardListState extends State<FoodCardList> {
+  late List<Food> _curFoodItems;
+  List<Options> _active = [];
+  List<Options> _disable = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _curFoodItems = [...widget.foodItems];
+  }
+
+  void filter(Options op) {
+    if (!_disable.remove(op)) {
+      _active.remove(op) ? _disable.add(op) : _active.add(op);
+    }
+
+    _curFoodItems = [...widget.foodItems];
+    for (int i = 0; i < _curFoodItems.length; i++) {
+      for (Options option in _active) {
+        if (!_curFoodItems[i].options.contains(option)) {
+          _curFoodItems.removeAt(i);
+          i--;
+        }
+      }
+      for (Options option in _disable) {
+        if (_curFoodItems[i].options.contains(option)) {
+          _curFoodItems.removeAt(i);
+          i--;
+        }
+      }
+    }
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
       scrollDirection: Axis.vertical,
       shrinkWrap: true,
-      itemCount: widget.foodItems.length,
-      itemBuilder: (context, index) => FoodCard(food: widget.foodItems[index])
+      itemCount: _curFoodItems.length,
+      itemBuilder: (context, index) => FoodCard(food: _curFoodItems[index])
     );
   }
 }

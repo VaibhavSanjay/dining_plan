@@ -3,6 +3,7 @@ import 'package:dining_plan/helpers/mealWidgets.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:postgres/postgres.dart';
+import 'package:animated_text_kit/animated_text_kit.dart';
 
 import 'models/food.dart';
 
@@ -28,7 +29,7 @@ class MyApp extends StatelessWidget {
         // or simply save your changes to "hot reload" in a Flutter IDE).
         // Notice that the counter didn't reset back to zero; the application
         // is not restarted.
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.red,
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
@@ -53,9 +54,25 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
   int _meal = 0;
   late List<Food> _foodList;
+  bool _setList = false;
+  final GlobalKey<FoodCardListState> _keyFoodList = GlobalKey();
+  late final AnimationController _controller = AnimationController(
+    duration: const Duration(milliseconds: 300),
+    vsync: this,
+  );
+  late final Animation<double> _animation = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeIn,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   String _mealText() {
     switch(_meal) {
@@ -73,17 +90,8 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    _foodList = [
-      Food(name: 'Nathan', options: [Options.vegetarian, Options.vegan]),
-      Food(name: 'Salad', options: [Options.vegetarian, Options.halal]),
-      Food(name: 'Salad', options: [Options.vegetarian, Options.halal]),
-      Food(name: 'Salad', options: [Options.vegetarian, Options.halal]),
-      Food(name: 'Salad', options: [Options.vegetarian, Options.halal]),
-      Food(name: 'Salad', options: [Options.vegetarian, Options.halal]),
-      Food(name: 'Salad', options: [Options.vegetarian, Options.halal]),
-      Food(name: 'Sawdawd', options: [Options.vegetarian, Options.halal]),
-    ];
-    // test();
+    test();
+    _controller.forward();
   }
 
   void test() async {
@@ -93,6 +101,8 @@ class _MyHomePageState extends State<MyHomePage> {
         "swift-hare-482.defaultdb",
         username: "nathanb9",
         password: "AsR0kDQTDNyn5z-nxxfHuA",
+        useSSL: true,
+        allowClearTextPassword: true
     );
     try {
       await connection.open();
@@ -100,8 +110,12 @@ class _MyHomePageState extends State<MyHomePage> {
       print(e);
     }
 
-    List<List<dynamic>> results = await connection.query("SELECT name FROM food");
-    print(results);
+    await connection.query("USE name");
+    _foodList = (await connection.query("SELECT * FROM food")).map(
+            (res) => Food(name: res[1], options: Food.bitsToOptionList(3))).toList();
+    setState(() {
+      _setList = true;
+    });
   }
 
   @override
@@ -120,72 +134,108 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: CircularMenu(
         alignment: Alignment.bottomRight,
-        backgroundWidget: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            children: [
-              Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.all(Radius.circular(30.0)),
-                    child: ColorFiltered(
-                        colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.darken),
-                        child: Image.asset('images/diner.jpg')
-                    )
-                  ),
-                  Container(
-                    transform: Matrix4.translationValues(20, 205, 0),
-                    child: const Text('The Diner', style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold))
+        backgroundWidget: Column(
+          children: [
+            Stack(
+              children: [
+                ClipRRect(
+                  child: ColorFiltered(
+                      colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.darken),
+                      child: Image.asset('images/diner.jpg')
                   )
-                ],
-              ),
-              Card(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.yellow,
-                        Colors.orangeAccent,
-                        Colors.yellow.shade300,
+                ),
+                Container(
+                  transform: Matrix4.translationValues(15, 15, 0),
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15)
+                    ),
+                    color: Colors.amber,
+                    child: const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Text('The Diner', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+                    )
+                  )
+                ),
+                Container(
+                  alignment: Alignment.center,
+                  transform: Matrix4.translationValues(0, 235, 0),
+                  child: SizeTransition(
+                    sizeFactor: _animation,
+                    axis: Axis.horizontal,
+                    axisAlignment: -1,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        const Opacity(
+                          opacity: 0.7,
+                          child: SizedBox(
+                            width: 160,
+                            height: 50,
+                            child: Card(
+                              elevation: 5,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          _mealText(),
+                          style: const TextStyle(fontSize: 30, color: Colors.amberAccent, fontWeight: FontWeight.bold)
+                        )
                       ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
                     ),
                   ),
-                  child: Text(_mealText(), style: const TextStyle(fontSize: 30),), //declare your widget here
                 ),
+              ],
+            ),
+            Container(
+              alignment: Alignment.center,
+              padding: const EdgeInsets.only(top: 30),
+              width: 350,
+              child: Wrap(
+                children: Options.values.toList().map(
+                        (op) => MealFilter(
+                            option: op,
+                            onTap: () => _keyFoodList.currentState!.filter(op)
+                        )).toList()
               ),
-              Row(
-                children: const [
-                  MealFilter(option: Options.vegetarian),
-                  MealFilter(option: Options.vegan),
-                  MealFilter(option: Options.halal)
-                ],
-              ),
-              Expanded(child: FoodCardList(foodItems: _foodList))
-            ],
-          ),
+            ),
+            Divider(
+              color: Colors.grey.withOpacity(0.5),
+              thickness: 10,
+            ),
+            _setList ? Expanded(child: FoodCardList(foodItems: _foodList, key: _keyFoodList)) : const CircularProgressIndicator()
+          ],
         ),
         toggleButtonBoxShadow: [],
         items: [
           CircularMenuItem(icon: FontAwesomeIcons.bacon, onTap: () {
-            setState(() {
-              _meal = 0;
+            _controller.reverse().whenComplete(() {
+              setState(() {
+                _meal = 0;
+              });
+              _controller.forward();
             });
             },
             boxShadow: [],
             color: Colors.amber,
           ),
           CircularMenuItem(icon: FontAwesomeIcons.burger, onTap: () {
-            setState(() {
-              _meal = 1;
+            _controller.reverse().whenComplete(() {
+              setState(() {
+                _meal = 1;
+              });
+              _controller.forward();
             });
           },
           boxShadow: [],
           color: Colors.deepOrange,),
           CircularMenuItem(icon: FontAwesomeIcons.bowlRice, onTap: () {
-            setState(() {
-              _meal = 2;
+            _controller.reverse().whenComplete(() {
+              setState(() {
+                _meal = 2;
+              });
+              _controller.forward();
             });
           },
           boxShadow: [],

@@ -12,4 +12,13 @@ class Food {
 
   final String name;
   final List<Options> options;
+
+  static bitsToOptionList(int bits) {
+    List<Options> ret = [];
+    for (int i = 0; i < Options.values.length; i++) {
+      if (bits % 2 == 1) ret.add(Options.values[i]);
+      bits >>= 1;
+    }
+    return ret;
+  }
 }
