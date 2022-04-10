@@ -3,10 +3,12 @@ import 'package:dining_plan/helpers/mealWidgets.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:postgres/postgres.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'models/food.dart';
 
-void main() {
+void main() async {
+  await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }
 
@@ -130,11 +132,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   void connect() async {
     connection = PostgreSQLConnection(
-        "free-tier11.gcp-us-east1.cockroachlabs.cloud",
-        26257,
-        "swift-hare-482.defaultdb",
-        username: "nathanb9",
-        password: "AsR0kDQTDNyn5z-nxxfHuA",
+        dotenv.env['HOST'] ?? '',
+        int.parse(dotenv.env['PORT'] ?? '0'),
+        dotenv.env['DATABASE'] ?? '',
+        username: dotenv.env['USERNAME'] ?? '',
+        password: dotenv.env['PASSWORD'] ?? '',
         useSSL: true,
         allowClearTextPassword: true
     );
