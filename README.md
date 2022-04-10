@@ -30,7 +30,7 @@ We used flutter to build the mobile front end of the application. Then, we used 
 
 <ul>
   <li>VaibhavSanjay</li>
-  <li>nathan_b9</li>
+  <li>nathanb9</li>
   <li>vladodio</li>
   <li>pistachionet</li>
 </ul>
