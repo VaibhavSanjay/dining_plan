@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../models/food.dart';
@@ -29,11 +31,11 @@ class FoodCard extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(food.name, style: const TextStyle(fontSize: 30),),
+            Text('${food.name.substring(0, min(30, food.name.length))}${food.name.length > 30 ? '...' : ''}', style: const TextStyle(fontSize: 15),),
             Row(
               children: food.options.map((op) => Padding(
                 padding: const EdgeInsets.only(right: 8),
-                child: getOptionIcon(op, 0.7),
+                child: ClipOval(child: getOptionIcon(op, 0.7)),
               )).toList(),
             )
           ],
@@ -132,34 +134,37 @@ class FoodCardList extends StatefulWidget {
 
 class FoodCardListState extends State<FoodCardList> {
   late List<Food> _curFoodItems;
+  late List<Food> _origFoodItems;
   List<Options> _active = [];
   List<Options> _disable = [];
 
   @override
   void initState() {
     super.initState();
+    _origFoodItems = widget.foodItems;
     _curFoodItems = [...widget.foodItems];
   }
 
-  void filter(Options op) {
-    if (!_disable.remove(op)) {
-      _active.remove(op) ? _disable.add(op) : _active.add(op);
-    }
+  void updateTable(List<Food> newItems) {
+    _origFoodItems = newItems;
+    _fixList();
+  }
 
+  void _fixList() {
     bool found = false;
     _curFoodItems = [];
-    for (int i = 0; i < widget.foodItems.length; i++) {
+    for (int i = 0; i < _origFoodItems.length; i++) {
       found = false;
       for (Options option in _disable) {
-        found = widget.foodItems[i].options.contains(option);
+        found = _origFoodItems[i].options.contains(option);
       }
       if (!found) {
         if (_active.isEmpty) {
-          _curFoodItems.add(widget.foodItems[i]);
+          _curFoodItems.add(_origFoodItems[i]);
         } else {
           for (Options option in _active) {
-            if (widget.foodItems[i].options.contains(option)) {
-              _curFoodItems.add(widget.foodItems[i]);
+            if (_origFoodItems[i].options.contains(option)) {
+              _curFoodItems.add(_origFoodItems[i]);
               break;
             }
           }
@@ -167,6 +172,14 @@ class FoodCardListState extends State<FoodCardList> {
       }
     }
     setState(() {});
+  }
+
+  void filter(Options op) {
+    if (!_disable.remove(op)) {
+      _active.remove(op) ? _disable.add(op) : _active.add(op);
+    }
+
+    _fixList();
   }
 
   @override

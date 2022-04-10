@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.red,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: "What's Cookin?"),
     );
   }
 }
@@ -77,6 +77,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   int _cur = 0;
   final List<String> _imgs = ['diner', 'north', 'south'];
   final List<String> _names = ['The Diner', '251 North', 'South Diner'];
+  late PostgreSQLConnection connection;
 
   @override
   void dispose() {
@@ -100,7 +101,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    test();
+    connect();
     _controller.forward();
     _nameController.forward();
   }
@@ -113,8 +114,22 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     precacheImage(const AssetImage('images/south.jpg'), context);
   }
 
-  void test() async {
-    var connection = PostgreSQLConnection(
+  Future<void> setList() async {
+    await connection.query("USE defaultdb");
+    _foodList = (await connection.query("SELECT * FROM food${_meal * 3 + _cur + 1}")).map(
+            (res) => Food(name: res[0], options: Food.bitsToOptionList(res[1]))).toList();
+    if (!_setList) {
+      setState(() {
+        _setList = true;
+      });
+    } else {
+      _keyFoodList.currentState!.updateTable(_foodList);
+      setState(() {});
+    }
+  }
+
+  void connect() async {
+    connection = PostgreSQLConnection(
         "free-tier11.gcp-us-east1.cockroachlabs.cloud",
         26257,
         "swift-hare-482.defaultdb",
@@ -129,12 +144,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       print(e);
     }
 
-    await connection.query("USE name");
-    _foodList = (await connection.query("SELECT * FROM food")).map(
-            (res) => Food(name: res[1], options: Food.bitsToOptionList(3))).toList();
-    setState(() {
-      _setList = true;
-    });
+    setList();
   }
 
   @override
@@ -152,17 +162,17 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         title: Text(widget.title),
       ),
       body: CircularMenu(
-        alignment: Alignment.bottomRight,
+        alignment: Alignment.topRight,
         backgroundWidget: Container(
           color: Colors.black87,
           child: Column(
             children: [
               InkWell(
-                onTap: () {
+                onTap: () async {
+                  _cur = (_cur + 1) % 3;
+                  await setList();
                   _nameController.reverse().whenComplete(() {
-                    setState(() {
-                      _cur = (_cur + 1) % 3;
-                    });
+                    setState(() {});
                     _nameController.forward();
                   });
                 },
@@ -178,7 +188,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                       sizeFactor: _nameAnimation,
                       axisAlignment: 0,
                       child: Container(
-                        transform: Matrix4.translationValues(15, 15, 0),
+                        transform: Matrix4.translationValues(10, 10, 0),
                         child: Card(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(15)
@@ -250,32 +260,32 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         ),
         toggleButtonBoxShadow: const [],
         items: [
-          CircularMenuItem(icon: FontAwesomeIcons.bacon, onTap: () {
+          CircularMenuItem(icon: FontAwesomeIcons.bacon, onTap: () async {
+            _meal = 0;
+            await setList();
             _controller.reverse().whenComplete(() {
-              setState(() {
-                _meal = 0;
-              });
+              setState(() {});
               _controller.forward();
             });
             },
             boxShadow: const [],
             color: Colors.amber,
           ),
-          CircularMenuItem(icon: FontAwesomeIcons.pizzaSlice, onTap: () {
+          CircularMenuItem(icon: FontAwesomeIcons.pizzaSlice, onTap: () async {
+            _meal = 1;
+            await setList();
             _controller.reverse().whenComplete(() {
-              setState(() {
-                _meal = 1;
-              });
+              setState(() {});
               _controller.forward();
             });
           },
           boxShadow: const [],
           color: Colors.deepOrange,),
-          CircularMenuItem(icon: FontAwesomeIcons.burger, onTap: () {
+          CircularMenuItem(icon: FontAwesomeIcons.burger, onTap: () async {
+            _meal = 2;
+            await setList();
             _controller.reverse().whenComplete(() {
-              setState(() {
-                _meal = 2;
-              });
+              setState(() {});
               _controller.forward();
             });
           },

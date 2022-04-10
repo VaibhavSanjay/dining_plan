@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.vsanjay.dining_plan">
    <application
-        android:label="dining_plan"
+        android:label="What's Cookin"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
