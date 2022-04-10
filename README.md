@@ -1,4 +1,4 @@
-# What's Cooking?
+# What's Cookin?
 
 A new Flutter project. UMD Dining
 
