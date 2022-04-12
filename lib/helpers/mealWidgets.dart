@@ -135,6 +135,7 @@ class FoodCardList extends StatefulWidget {
 class FoodCardListState extends State<FoodCardList> {
   late List<Food> _curFoodItems;
   late List<Food> _origFoodItems;
+  String search = '';
   List<Options> _active = [];
   List<Options> _disable = [];
 
@@ -159,9 +160,9 @@ class FoodCardListState extends State<FoodCardList> {
         found = _origFoodItems[i].options.contains(option);
       }
       if (!found) {
-        if (_active.isEmpty) {
+        if (_active.isEmpty && _origFoodItems[i].name.contains(search)) {
           _curFoodItems.add(_origFoodItems[i]);
-        } else {
+        } else if (_origFoodItems[i].name.contains(search)) {
           for (Options option in _active) {
             if (_origFoodItems[i].options.contains(option)) {
               _curFoodItems.add(_origFoodItems[i]);

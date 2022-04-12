@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:postgres/postgres.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:dots_indicator/dots_indicator.dart';
 
 import 'models/food.dart';
 
@@ -79,11 +80,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   int _cur = 0;
   final List<String> _imgs = ['diner', 'north', 'south'];
   final List<String> _names = ['The Diner', '251 North', 'South Diner'];
+  final PageController _pageController = PageController();
   late PostgreSQLConnection connection;
 
   @override
   void dispose() {
     _controller.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -169,22 +172,39 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           color: Colors.black87,
           child: Column(
             children: [
-              InkWell(
-                onTap: () async {
-                  _cur = (_cur + 1) % 3;
-                  await setList();
-                  _nameController.reverse().whenComplete(() {
-                    setState(() {});
-                    _nameController.forward();
-                  });
-                },
+              Expanded(
                 child: Stack(
                   children: [
-                    ClipRRect(
-                      child: ColorFiltered(
-                          colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.darken),
-                          child: Image.asset('images/${_imgs[_cur]}.jpg')
-                      )
+                    PageView(
+                      onPageChanged: (index) async {
+                        _cur = index;
+                        _nameController.reverse().whenComplete(() {
+                          setList();
+                          setState(() {});
+                          _nameController.forward();
+                        });
+                      },
+                      controller: _pageController,
+                      children: List<Widget>.generate(_imgs.length, (index) =>
+                          ClipRRect(
+                              child: ColorFiltered(
+                                  colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.darken),
+                                  child: Image.asset('images/${_imgs[index]}.jpg', fit: BoxFit.cover,)
+                              )
+                          )
+                      ),
+                    ),
+                    Container(
+                      alignment: Alignment.bottomCenter,
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: DotsIndicator(
+                        dotsCount: _imgs.length,
+                        position: _cur.toDouble(),
+                        decorator: const DotsDecorator(
+                          color: Colors.blueGrey, // Inactive color
+                          activeColor: Colors.amber,
+                        ),
+                      ),
                     ),
                     SizeTransition(
                       sizeFactor: _nameAnimation,
