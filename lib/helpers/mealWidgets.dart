@@ -31,7 +31,7 @@ class FoodCard extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('${food.name.substring(0, min(30, food.name.length))}${food.name.length > 30 ? '...' : ''}', style: const TextStyle(fontSize: 15),),
+            Text('${food.name.substring(0, min(20, food.name.length))}${food.name.length > 20 ? '...' : ''}', style: const TextStyle(fontSize: 15),),
             Row(
               children: food.options.map((op) => Padding(
                 padding: const EdgeInsets.only(right: 8),
@@ -135,7 +135,7 @@ class FoodCardList extends StatefulWidget {
 class FoodCardListState extends State<FoodCardList> {
   late List<Food> _curFoodItems;
   late List<Food> _origFoodItems;
-  String search = '';
+  String _search = '';
   List<Options> _active = [];
   List<Options> _disable = [];
 
@@ -160,9 +160,9 @@ class FoodCardListState extends State<FoodCardList> {
         found = _origFoodItems[i].options.contains(option);
       }
       if (!found) {
-        if (_active.isEmpty && _origFoodItems[i].name.contains(search)) {
+        if (_active.isEmpty && _origFoodItems[i].name.toLowerCase().contains(_search)) {
           _curFoodItems.add(_origFoodItems[i]);
-        } else if (_origFoodItems[i].name.contains(search)) {
+        } else if (_origFoodItems[i].name.toLowerCase().contains(_search)) {
           for (Options option in _active) {
             if (_origFoodItems[i].options.contains(option)) {
               _curFoodItems.add(_origFoodItems[i]);
@@ -179,6 +179,12 @@ class FoodCardListState extends State<FoodCardList> {
     if (!_disable.remove(op)) {
       _active.remove(op) ? _disable.add(op) : _active.add(op);
     }
+
+    _fixList();
+  }
+
+  void search(String value) {
+    _search = value;
 
     _fixList();
   }

@@ -61,14 +61,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   late List<Food> _foodList;
   bool _setList = false;
   final GlobalKey<FoodCardListState> _keyFoodList = GlobalKey();
-  late final AnimationController _controller = AnimationController(
-    duration: const Duration(milliseconds: 100),
-    vsync: this,
-  );
-  late final Animation<double> _animation = CurvedAnimation(
-    parent: _controller,
-    curve: Curves.easeIn,
-  );
   late final AnimationController _nameController = AnimationController(
     duration: const Duration(milliseconds: 300),
     vsync: this,
@@ -80,34 +72,21 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   int _cur = 0;
   final List<String> _imgs = ['diner', 'north', 'south'];
   final List<String> _names = ['The Diner', '251 North', 'South Diner'];
+  final List<String> _meals = ['Breakfast', 'Lunch', 'Dinner'];
+  final List<Color> _mealColors = [Colors.amber, Colors.orange, Colors.indigoAccent];
   final PageController _pageController = PageController();
   late PostgreSQLConnection connection;
 
   @override
   void dispose() {
-    _controller.dispose();
     _pageController.dispose();
     super.dispose();
-  }
-
-  String _mealText() {
-    switch(_meal) {
-      case 0:
-        return 'Breakfast';
-      case 1:
-        return 'Lunch';
-      case 2:
-        return 'Dinner';
-      default:
-        return '';
-    }
   }
 
   @override
   void initState() {
     super.initState();
     connect();
-    _controller.forward();
     _nameController.forward();
   }
 
@@ -152,6 +131,15 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     setList();
   }
 
+  void _changeMealType(Function() pre) {
+    pre();
+    _nameController.reverse().whenComplete(() {
+      setList();
+      setState(() {});
+      _nameController.forward();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -174,16 +162,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             children: [
               Expanded(
                 child: Stack(
+                  alignment: Alignment.topCenter,
                   children: [
                     PageView(
-                      onPageChanged: (index) async {
-                        _cur = index;
-                        _nameController.reverse().whenComplete(() {
-                          setList();
-                          setState(() {});
-                          _nameController.forward();
-                        });
-                      },
+                      onPageChanged: (index) => _changeMealType(() => _cur = index),
                       controller: _pageController,
                       children: List<Widget>.generate(_imgs.length, (index) =>
                           ClipRRect(
@@ -196,14 +178,34 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                     ),
                     Container(
                       alignment: Alignment.bottomCenter,
-                      padding: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.only(bottom: 30),
                       child: DotsIndicator(
                         dotsCount: _imgs.length,
                         position: _cur.toDouble(),
                         decorator: const DotsDecorator(
                           color: Colors.blueGrey, // Inactive color
-                          activeColor: Colors.amber,
+                          activeColor: Colors.yellow,
                         ),
+                      ),
+                    ),
+                    Container(
+                      width: 300,
+                      transform: Matrix4.translationValues(0, 25, 0),
+                      alignment: Alignment.bottomCenter,
+                      child: Card(
+                        elevation: 15,
+                        child: SizedBox(
+                          width: 350,
+                          child: TextFormField(
+                            decoration: const InputDecoration(
+                                hintText: 'Search for your dining favorites...',
+                                prefixIcon: Icon(Icons.search)
+                            ),
+                            onChanged: (value) {
+                              _keyFoodList.currentState!.search(value);
+                            }
+                          ),
+                        )
                       ),
                     ),
                     SizeTransition(
@@ -215,41 +217,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(15)
                           ),
-                          color: Colors.amber,
+                          color: _mealColors[_meal],
                           child: Padding(
                             padding: const EdgeInsets.only(left: 8, right: 8, top: 8, bottom: 16),
-                            child: Text(_names[_cur], style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(_names[_cur], style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+                                Text(_meals[_meal], style: const TextStyle(fontSize: 20, fontStyle: FontStyle.italic),)
+                              ],
+                            ),
                           )
                         )
-                      ),
-                    ),
-                    Container(
-                      alignment: Alignment.center,
-                      transform: Matrix4.translationValues(0, 235, 0),
-                      child: SizeTransition(
-                        sizeFactor: _animation,
-                        axis: Axis.horizontal,
-                        axisAlignment: -1,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            const Opacity(
-                              opacity: 0.7,
-                              child: SizedBox(
-                                width: 160,
-                                height: 50,
-                                child: Card(
-                                  elevation: 5,
-                                  color: Colors.red,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              _mealText(),
-                              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold)
-                            )
-                          ],
-                        ),
                       ),
                     ),
                   ],
@@ -282,37 +262,24 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         ),
         toggleButtonBoxShadow: const [],
         items: [
-          CircularMenuItem(icon: FontAwesomeIcons.bacon, onTap: () async {
-            _meal = 0;
-            await setList();
-            _controller.reverse().whenComplete(() {
-              setState(() {});
-              _controller.forward();
-            });
-            },
+          CircularMenuItem(
+            icon: FontAwesomeIcons.bacon,
+            onTap: () => _changeMealType(() => _meal = 0),
             boxShadow: const [],
-            color: Colors.amber,
+            color: _mealColors[0],
           ),
-          CircularMenuItem(icon: FontAwesomeIcons.pizzaSlice, onTap: () async {
-            _meal = 1;
-            await setList();
-            _controller.reverse().whenComplete(() {
-              setState(() {});
-              _controller.forward();
-            });
-          },
-          boxShadow: const [],
-          color: Colors.deepOrange,),
-          CircularMenuItem(icon: FontAwesomeIcons.burger, onTap: () async {
-            _meal = 2;
-            await setList();
-            _controller.reverse().whenComplete(() {
-              setState(() {});
-              _controller.forward();
-            });
-          },
-          boxShadow: const [],
-          color: Colors.indigo,),
+          CircularMenuItem(
+            icon: FontAwesomeIcons.pizzaSlice,
+            onTap: () => _changeMealType(() => _meal = 1),
+            boxShadow: const [],
+            color: _mealColors[1],
+          ),
+          CircularMenuItem(
+            icon: FontAwesomeIcons.burger,
+            onTap: () => _changeMealType(() => _meal = 2),
+            boxShadow: const [],
+            color: _mealColors[2],
+          ),
         ],
       )
     );
