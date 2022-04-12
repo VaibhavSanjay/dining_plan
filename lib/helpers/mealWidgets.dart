@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../models/food.dart';
+import 'hero_dialogue_route.dart';
 
 Image getOptionIcon (Options op, double scale) {
   return Image.network('https://nutrition.umd.edu/LegendImages/icons_2016_${op.toString().split(".")[1]}.gif', scale: scale);
@@ -15,32 +16,46 @@ extension StringExtension on String {
 }
 
 class FoodCard extends StatelessWidget {
-  const FoodCard({Key? key, required this.food}) : super(key: key);
+  const FoodCard({Key? key, required this.food, required this.index}) : super(key: key);
 
   final Food food;
+  final int index;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15.0),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('${food.name.substring(0, min(20, food.name.length))}${food.name.length > 20 ? '...' : ''}', style: const TextStyle(fontSize: 15),),
-            Row(
-              children: food.options.map((op) => Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: ClipOval(child: getOptionIcon(op, 0.7)),
-              )).toList(),
-            )
-          ],
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(HeroDialogRoute(builder: (context) {
+          return FoodInfoCard(food: food, onStar: (){}, padding: EdgeInsets.symmetric(vertical: 100, horizontal: 25), heroTag: index);
+        }));
+      },
+      child: Hero(
+        tag: index,
+        createRectTween: (begin, end) {
+          return CustomRectTween(begin: begin, end: end);
+        },
+        child: Card(
+          elevation: 5,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15.0),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('${food.name.substring(0, min(20, food.name.length))}${food.name.length > 20 ? '...' : ''}', style: const TextStyle(fontSize: 15),),
+                Row(
+                  children: food.options.map((op) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ClipOval(child: getOptionIcon(op, 0.7)),
+                  )).toList(),
+                )
+              ],
+            ),
+          )
         ),
-      )
+      ),
     );
   }
 }
@@ -195,8 +210,115 @@ class FoodCardListState extends State<FoodCardList> {
       scrollDirection: Axis.vertical,
       shrinkWrap: true,
       itemCount: _curFoodItems.length,
-      itemBuilder: (context, index) => FoodCard(food: _curFoodItems[index])
+      itemBuilder: (context, index) => FoodCard(food: _curFoodItems[index], index: index)
     );
   }
 }
+
+class FoodInfoCard extends StatefulWidget {
+  const FoodInfoCard({Key? key, required this.food, required this.onStar, required this.padding, required this.heroTag}) : super(key: key);
+
+  final Food food;
+  final Function() onStar;
+  final EdgeInsets padding;
+  final int heroTag;
+
+  @override
+  State<FoodInfoCard> createState() => _FoodInfoCardState();
+}
+
+class _FoodInfoCardState extends State<FoodInfoCard> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    duration: const Duration(milliseconds: 1500),
+    vsync: this,
+  );
+  late final Animation<double> _animation = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.elasticInOut,
+  );
+  late bool _starred;
+  
+  @override
+  void initState() {
+    super.initState();
+    _starred = widget.food.starred;
+    _controller.forward(from: 1);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onStar() {
+    _controller.reset();
+    setState(() {
+      _starred = !_starred;
+    });
+    _controller.forward(from: 0.4);
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: widget.padding,
+      child: Hero(
+        tag: widget.heroTag,
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(widget.food.name, style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: ScaleTransition(
+                          scale: _animation,
+                          child: IconButton(
+                            onPressed: _onStar,
+                            icon: Icon(_starred ? Icons.star : Icons.star_border),
+                            iconSize: 40,
+                            color: _starred ? Colors.amber : Colors.black,
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                  const Divider(
+                    color: Colors.grey,
+                    thickness: 4,
+                    height: 10
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 5),
+                    child: Text('Restrictions:', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 18),),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: widget.food.options.map((op) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ClipOval(child: getOptionIcon(op, 0.7)),
+                    )).toList(),
+                  )
+                ],
+              ),
+            ),
+          )
+        ),
+      )
+    );
+  }
+}
+
 

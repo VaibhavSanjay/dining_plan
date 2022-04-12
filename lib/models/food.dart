@@ -8,10 +8,11 @@ enum Options {
 }
 
 class Food {
-  const Food({required this.name, required this.options});
+  const Food({required this.name, required this.options, this.starred = false});
 
   final String name;
   final List<Options> options;
+  final bool starred;
 
   static bitsToOptionList(int bits) {
     List<Options> ret = [];
