@@ -1,5 +1,6 @@
 import 'package:circular_menu/circular_menu.dart';
 import 'package:dining_plan/helpers/mealWidgets.dart';
+import 'package:dining_plan/services/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:postgres/postgres.dart';
@@ -128,6 +129,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       print(e);
     }
 
+    await SharedPreferencesService.initialize();
     setList();
   }
 
@@ -169,10 +171,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                       controller: _pageController,
                       children: List<Widget>.generate(_imgs.length, (index) =>
                           ClipRRect(
-                              child: ColorFiltered(
-                                  colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.darken),
-                                  child: Image.asset('images/${_imgs[index]}.jpg', fit: BoxFit.cover,)
-                              )
+                              child: Image.asset('images/${_imgs[index]}.jpg', fit: BoxFit.cover,)
                           )
                       ),
                     ),
@@ -189,22 +188,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                       ),
                     ),
                     Container(
-                      width: 300,
+                      width: 330,
                       transform: Matrix4.translationValues(0, 25, 0),
                       alignment: Alignment.bottomCenter,
                       child: Card(
-                        elevation: 15,
-                        child: SizedBox(
-                          width: 350,
-                          child: TextFormField(
-                            decoration: const InputDecoration(
-                                hintText: 'Search for your dining favorites...',
-                                prefixIcon: Icon(Icons.search)
-                            ),
-                            onChanged: (value) {
-                              _keyFoodList.currentState!.search(value);
-                            }
+                        elevation: 5,
+                        child: TextFormField(
+                          decoration: const InputDecoration(
+                              hintText: 'Search for your dining favorites...',
+                              prefixIcon: Icon(Icons.search)
                           ),
+                          onChanged: (value) {
+                            _keyFoodList.currentState!.search(value);
+                          }
                         )
                       ),
                     ),

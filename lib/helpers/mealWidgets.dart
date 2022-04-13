@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:dining_plan/services/shared_preferences.dart';
 import 'package:flutter/material.dart';
 
 import '../models/food.dart';
@@ -16,18 +17,20 @@ extension StringExtension on String {
 }
 
 class FoodCard extends StatelessWidget {
-  const FoodCard({Key? key, required this.food, required this.index}) : super(key: key);
+  const FoodCard({Key? key, required this.food, this.starred = false, required this.onInfoCardComplete, required this.index}) : super(key: key);
 
   final Food food;
+  final bool starred;
   final int index;
+  final Function() onInfoCardComplete;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
         Navigator.of(context).push(HeroDialogRoute(builder: (context) {
-          return FoodInfoCard(food: food, onStar: (){}, padding: EdgeInsets.symmetric(vertical: 100, horizontal: 25), heroTag: index);
-        }));
+          return FoodInfoCard(food: food, onStar: (){}, padding: EdgeInsets.symmetric(vertical: MediaQuery.of(context).size.height/2 - 200, horizontal: 25), heroTag: index, starred: starred,);
+        })).whenComplete(onInfoCardComplete);
       },
       child: Hero(
         tag: index,
@@ -35,6 +38,7 @@ class FoodCard extends StatelessWidget {
           return CustomRectTween(begin: begin, end: end);
         },
         child: Card(
+          color: starred ? Colors.amber : Colors.white,
           elevation: 5,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15.0),
@@ -153,12 +157,34 @@ class FoodCardListState extends State<FoodCardList> {
   String _search = '';
   List<Options> _active = [];
   List<Options> _disable = [];
+  late List<FoodCard> _items = [];
+  bool _setList = false;
 
   @override
   void initState() {
     super.initState();
     _origFoodItems = widget.foodItems;
     _curFoodItems = [...widget.foodItems];
+    _createItems().whenComplete(() {
+      setState(() {
+        _setList = true;
+      });
+    });
+  }
+
+  Future<void> _createItems() async {
+    _items = [];
+    int cur = 0;
+    for (Food f in _curFoodItems) {
+      if (await SharedPreferencesService.checkStar(f.name)) {
+        _items.add(FoodCard(food: f, index: cur++, starred: true, onInfoCardComplete: _fixList));
+      }
+    }
+    for (Food f in _curFoodItems) {
+      if (!await SharedPreferencesService.checkStar(f.name)) {
+        _items.add(FoodCard(food: f, index: cur++, starred: false, onInfoCardComplete: _fixList));
+      }
+    }
   }
 
   void updateTable(List<Food> newItems) {
@@ -167,6 +193,9 @@ class FoodCardListState extends State<FoodCardList> {
   }
 
   void _fixList() {
+    setState(() {
+      _setList = false;
+    });
     bool found = false;
     _curFoodItems = [];
     for (int i = 0; i < _origFoodItems.length; i++) {
@@ -187,7 +216,11 @@ class FoodCardListState extends State<FoodCardList> {
         }
       }
     }
-    setState(() {});
+    _createItems().whenComplete(() {
+      setState(() {
+        _setList = true;
+      });
+    });
   }
 
   void filter(Options op) {
@@ -206,19 +239,19 @@ class FoodCardListState extends State<FoodCardList> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
+    return _setList ? ListView(
       scrollDirection: Axis.vertical,
       shrinkWrap: true,
-      itemCount: _curFoodItems.length,
-      itemBuilder: (context, index) => FoodCard(food: _curFoodItems[index], index: index)
-    );
+      children: _items,
+    ) : const CircularProgressIndicator();
   }
 }
 
 class FoodInfoCard extends StatefulWidget {
-  const FoodInfoCard({Key? key, required this.food, required this.onStar, required this.padding, required this.heroTag}) : super(key: key);
+  const FoodInfoCard({Key? key, required this.food, required this.onStar, required this.padding, required this.heroTag, this.starred = false}) : super(key: key);
 
   final Food food;
+  final bool starred;
   final Function() onStar;
   final EdgeInsets padding;
   final int heroTag;
@@ -241,7 +274,7 @@ class _FoodInfoCardState extends State<FoodInfoCard> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    _starred = widget.food.starred;
+    _starred = widget.starred;
     _controller.forward(from: 1);
   }
 
@@ -253,9 +286,9 @@ class _FoodInfoCardState extends State<FoodInfoCard> with SingleTickerProviderSt
 
   void _onStar() {
     _controller.reset();
-    setState(() {
-      _starred = !_starred;
-    });
+    _starred = !_starred;
+    _starred ? SharedPreferencesService.setStar(widget.food.name) : SharedPreferencesService.removeStar(widget.food.name);
+    setState(() {});
     _controller.forward(from: 0.4);
   }
   
@@ -301,16 +334,37 @@ class _FoodInfoCardState extends State<FoodInfoCard> with SingleTickerProviderSt
                     height: 10
                   ),
                   const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 5),
+                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                     child: Text('Restrictions:', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 18),),
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: widget.food.options.map((op) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ClipOval(child: getOptionIcon(op, 0.7)),
-                    )).toList(),
-                  )
+                  widget.food.options.isNotEmpty ? Center(
+                    child: Wrap(
+                      children: widget.food.options.map((op) => Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Card(
+                            elevation: 5,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15)
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.all(8.0),
+                              height: 70,
+                              width: 85,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                children: [
+                                  ClipOval(child: getOptionIcon(op, 0.7)),
+                                  Text(op.toString().split('.')[1].capitalize(), style: const TextStyle(color: Colors.grey),)
+                                ],
+                              ),
+                            )
+                        ),
+                      )).toList(),
+                    ),
+                  ) : const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: Text('None!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),),
+                  ),
                 ],
               ),
             ),
