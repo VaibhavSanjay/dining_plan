@@ -1,4 +1,5 @@
-import 'package:circular_menu/circular_menu.dart';
+import 'dart:math';
+
 import 'package:dining_plan/helpers/mealWidgets.dart';
 import 'package:dining_plan/services/shared_preferences.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:postgres/postgres.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:dots_indicator/dots_indicator.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 
 import 'models/food.dart';
 
@@ -71,6 +73,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     curve: Curves.easeInOutBack,
   );
   int _cur = 0;
+  bool _floatPressed = false;
+  double _height = 300;
   final List<String> _imgs = ['diner', 'north', 'south'];
   final List<String> _names = ['The Diner', '251 North', 'South Diner'];
   final List<String> _meals = ['Breakfast', 'Lunch', 'Dinner'];
@@ -134,8 +138,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   }
 
   void _changeMealType(Function() pre) {
-    pre();
     _nameController.reverse().whenComplete(() {
+      pre();
       setList();
       setState(() {});
       _nameController.forward();
@@ -156,128 +160,161 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: CircularMenu(
-        alignment: Alignment.topRight,
-        backgroundWidget: Container(
-          color: Colors.black87,
-          child: Column(
-            children: [
-              Expanded(
-                child: Stack(
-                  alignment: Alignment.topCenter,
-                  children: [
-                    PageView(
-                      onPageChanged: (index) => _changeMealType(() => _cur = index),
-                      controller: _pageController,
-                      children: List<Widget>.generate(_imgs.length, (index) =>
-                          ClipRRect(
-                              child: Image.asset('images/${_imgs[index]}.jpg', fit: BoxFit.cover,)
-                          )
-                      ),
-                    ),
-                    Container(
-                      alignment: Alignment.bottomCenter,
-                      padding: const EdgeInsets.only(bottom: 30),
-                      child: DotsIndicator(
-                        dotsCount: _imgs.length,
-                        position: _cur.toDouble(),
-                        decorator: const DotsDecorator(
-                          color: Colors.blueGrey, // Inactive color
-                          activeColor: Colors.yellow,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      width: 330,
-                      transform: Matrix4.translationValues(0, 25, 0),
-                      alignment: Alignment.bottomCenter,
-                      child: Card(
-                        elevation: 5,
-                        child: TextFormField(
-                          decoration: const InputDecoration(
-                              hintText: 'Search for your dining favorites...',
-                              prefixIcon: Icon(Icons.search)
-                          ),
-                          onChanged: (value) {
-                            _keyFoodList.currentState!.search(value);
-                          }
+      body: Container(
+        color: Colors.black87,
+        child: Column(
+          children: [
+            Container(
+              height: _height,
+              child: Stack(
+                alignment: Alignment.topCenter,
+                children: [
+                  PageView(
+                    onPageChanged: (index) => _changeMealType(() => _cur = index),
+                    controller: _pageController,
+                    children: List<Widget>.generate(_imgs.length, (index) =>
+                        ClipRRect(
+                            child: Image.asset('images/${_imgs[index]}.jpg', fit: BoxFit.cover)
                         )
+                    ),
+                  ),
+                  Container(
+                    alignment: Alignment.bottomCenter,
+                    padding: const EdgeInsets.only(bottom: 30),
+                    child: DotsIndicator(
+                      dotsCount: _imgs.length,
+                      position: _cur.toDouble(),
+                      decorator: const DotsDecorator(
+                        color: Colors.blueGrey, // Inactive color
+                        activeColor: Colors.yellow,
                       ),
                     ),
-                    SizeTransition(
+                  ),
+                  Positioned(
+                    top: 10,
+                    left: 10,
+                    child: SizeTransition(
                       sizeFactor: _nameAnimation,
                       axisAlignment: 0,
-                      child: Container(
-                        transform: Matrix4.translationValues(10, 10, 0),
-                        child: Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15)
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15)
+                        ),
+                        color: _mealColors[_meal],
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(_names[_cur], style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+                              AnimatedDefaultTextStyle(
+                                  curve: Curves.easeOut,
+                                  child: Text(_meals[_meal]),
+                                  style: TextStyle(
+                                      fontSize: _floatPressed ? 23 : 20,
+                                      fontStyle: _floatPressed ? FontStyle.normal : FontStyle.italic,
+                                      color: Colors.black,
+                                      fontWeight: _floatPressed ? FontWeight.w700 : FontWeight.normal,
+                                      letterSpacing: _floatPressed ? 3 : 0
+                                  ),
+                                  duration: const Duration(milliseconds: 500)
+                              ),
+                            ],
                           ),
-                          color: _mealColors[_meal],
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 8, right: 8, top: 8, bottom: 16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(_names[_cur], style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
-                                Text(_meals[_meal], style: const TextStyle(fontSize: 20, fontStyle: FontStyle.italic),)
-                              ],
-                            ),
-                          )
                         )
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              Container(
-                alignment: Alignment.center,
-                padding: const EdgeInsets.only(top: 40, bottom: 20),
-                width: 365,
-                child: Wrap(
-                  children: Options.values.toList().map(
-                          (op) => MealFilter(
-                              option: op,
-                              onTap: () => _keyFoodList.currentState!.filter(op)
-                          )).toList()
-                ),
+            ),
+            Container(
+              width: 330,
+              transform: Matrix4.translationValues(0, -30, 0),
+              alignment: Alignment.bottomCenter,
+              child: Card(
+                  elevation: 5,
+                  child: TextFormField(
+                      decoration: const InputDecoration(
+                          hintText: 'Search for your dining favorites...',
+                          prefixIcon: Icon(Icons.search)
+                      ),
+                      onChanged: (value) {
+                        _keyFoodList.currentState!.search(value);
+                      }
+                  )
               ),
-              Divider(
-                color: Colors.grey.withOpacity(0.5),
-                thickness: 10,
+            ),
+            Container(
+              alignment: Alignment.center,
+              padding: const EdgeInsets.only(bottom: 15),
+              width: 365,
+              child: Wrap(
+                runSpacing: 10,
+                children: Options.values.toList().map(
+                        (op) => MealFilter(
+                            option: op,
+                            onTap: () => _keyFoodList.currentState!.filter(op)
+                        )).toList()
               ),
-              _setList ? Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: FoodCardList(foodItems: _foodList, key: _keyFoodList),
-                )
-              ) : const CircularProgressIndicator()
-            ],
-          ),
+            ),
+            Divider(
+              color: Colors.grey.withOpacity(0.9),
+              thickness: 7,
+            ),
+            Container(
+              alignment: Alignment.centerLeft,
+              padding: EdgeInsets.only(top: 10, left: 10),
+              child: Text("Today's Menu:", style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white))
+            ),
+            _setList ? Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: FoodCardList(foodItems: _foodList, key: _keyFoodList, onScroll: (pixels) {
+                  setState(() {
+                    _height = max(25, 300 - pixels);
+                    print(_height);
+                  });
+                }),
+              )
+            ) : const CircularProgressIndicator()
+          ],
         ),
-        toggleButtonBoxShadow: const [],
-        items: [
-          CircularMenuItem(
-            icon: FontAwesomeIcons.bacon,
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
+      floatingActionButton: SpeedDial(
+        onOpen: () => setState(() {
+          _floatPressed = true;
+        }),
+        onClose: () => setState(() {
+            _floatPressed = false;
+        }),
+        backgroundColor: Colors.black,
+        direction: SpeedDialDirection.down,
+        overlayOpacity: 0,
+        spaceBetweenChildren: 7,
+        icon: FontAwesomeIcons.utensils,
+        children: [
+          SpeedDialChild(
+            child: const Icon(FontAwesomeIcons.bacon),
+            label: _meals[0],
             onTap: () => _changeMealType(() => _meal = 0),
-            boxShadow: const [],
-            color: _mealColors[0],
+            backgroundColor: _mealColors[0],
           ),
-          CircularMenuItem(
-            icon: FontAwesomeIcons.pizzaSlice,
+          SpeedDialChild(
+            child: const Icon(FontAwesomeIcons.pizzaSlice),
+            label: _meals[1],
             onTap: () => _changeMealType(() => _meal = 1),
-            boxShadow: const [],
-            color: _mealColors[1],
+            backgroundColor: _mealColors[1],
           ),
-          CircularMenuItem(
-            icon: FontAwesomeIcons.burger,
+          SpeedDialChild(
+            child: const Icon(FontAwesomeIcons.burger),
+            label: _meals[2],
             onTap: () => _changeMealType(() => _meal = 2),
-            boxShadow: const [],
-            color: _mealColors[2],
-          ),
-        ],
-      )
+            backgroundColor: _mealColors[2],
+          )
+        ]
+      ),
     );
   }
 }

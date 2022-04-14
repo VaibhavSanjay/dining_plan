@@ -143,9 +143,10 @@ class _MealFilterState extends State<MealFilter> with SingleTickerProviderStateM
 }
 
 class FoodCardList extends StatefulWidget {
-  const FoodCardList({Key? key, required this.foodItems}) : super(key: key);
+  const FoodCardList({Key? key, required this.foodItems, required this.onScroll}) : super(key: key);
 
   final List<Food> foodItems;
+  final Function(double) onScroll;
 
   @override
   State<FoodCardList> createState() => FoodCardListState();
@@ -239,10 +240,16 @@ class FoodCardListState extends State<FoodCardList> {
 
   @override
   Widget build(BuildContext context) {
-    return _setList ? ListView(
-      scrollDirection: Axis.vertical,
-      shrinkWrap: true,
-      children: _items,
+    return _setList ? NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        widget.onScroll(notification.metrics.pixels);
+        return true;
+      },
+      child: ListView(
+        scrollDirection: Axis.vertical,
+        shrinkWrap: true,
+        children: _items,
+      ),
     ) : const CircularProgressIndicator();
   }
 }
