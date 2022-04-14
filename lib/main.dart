@@ -155,6 +155,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
@@ -229,11 +230,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               ),
             ),
             Container(
-              width: 330,
+              color: Colors.white.withOpacity(max(0, 2 * (0.5 - (_height - 25)/300))),
+              width: max(330, MediaQuery.of(context).size.width - _height + 25),
               transform: Matrix4.translationValues(0, -30, 0),
-              alignment: Alignment.bottomCenter,
               child: Card(
-                  elevation: 5,
+                  elevation: 10*(_height/300),
                   child: TextFormField(
                       decoration: const InputDecoration(
                           hintText: 'Search for your dining favorites...',
@@ -247,7 +248,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             ),
             Container(
               alignment: Alignment.center,
-              padding: const EdgeInsets.only(bottom: 15),
+              transform: Matrix4.translationValues(0, -10 - (300 - _height)*15/300, 0),
               width: 365,
               child: Wrap(
                 runSpacing: 10,
@@ -258,23 +259,30 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                         )).toList()
               ),
             ),
-            Divider(
-              color: Colors.grey.withOpacity(0.9),
-              thickness: 7,
+            Container(
+              transform: Matrix4.translationValues(0, -(300 - _height)*15/300, 0),
+              child: Divider(
+                color: Colors.blueGrey[200],
+                thickness: 5,
+                indent: max(0, 20 - 20*(1 - _height/300)),
+                endIndent: max(0, 20 - 20*(1 - _height/300)),
+              ),
             ),
             Container(
+                transform: Matrix4.translationValues(0, -(300 - _height)*15/300, 0),
               alignment: Alignment.centerLeft,
-              padding: EdgeInsets.only(top: 10, left: 10),
-              child: Text("Today's Menu:", style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white))
+              padding: const EdgeInsets.only(top: 10, left: 10),
+              child: Text("Today's Menu:", style: TextStyle(fontSize: 18 + 12*(1 - _height/300), fontWeight: FontWeight.bold, color: Colors.white))
             ),
             _setList ? Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(top: 10),
                 child: FoodCardList(foodItems: _foodList, key: _keyFoodList, onScroll: (pixels) {
-                  setState(() {
-                    _height = max(25, 300 - pixels);
-                    print(_height);
-                  });
+                  WidgetsBinding.instance!.addPostFrameCallback(
+                    (_) => setState(() {
+                      _height = max(25, 300 - pixels);
+                    })
+                  );
                 }),
               )
             ) : const CircularProgressIndicator()
